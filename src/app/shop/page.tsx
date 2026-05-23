@@ -1,16 +1,18 @@
 "use client";
+// src/app/shop/page.tsx
 import { Suspense } from "react";
-import dynamic from "next/dynamic";
+import { useStore } from "@/store/useStore";
 
-const ShopPageClient = dynamic(
-  () => import("./ShopContent"),
-  { ssr: false }
-);
+// Lazy import to avoid SSR issues
+import dynamic from "next/dynamic";
+const ShopClient = dynamic(() => import("./ShopClient"), { ssr: false });
 
 export default function ShopPage() {
   return (
-    <Suspense fallback={<div style={{ minHeight: "100vh", background: "var(--color-bg)" }} />}>
-      <ShopPageClient />
+    <Suspense fallback={
+      <div style={{ minHeight: "100vh", background: "var(--color-bg)" }} />
+    }>
+      <ShopClient />
     </Suspense>
   );
 }
