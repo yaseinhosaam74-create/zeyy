@@ -95,7 +95,7 @@ export default function ShopClient() {
                   opacity: gender === g.id ? 1 : 0.4, background: "transparent",
                   cursor: "pointer", transition: "all 0.2s",
                   fontFamily: isAr ? "Aref Ruqaa, serif" : "Cormorant Garamond, serif",
-                  border: "none", borderBottom: gender === g.id ? "2px solid var(--color-text)" : "2px solid transparent",
+                  borderBottom: gender === g.id ? "2px solid var(--color-text)" : "2px solid transparent",
                 } as any}>
                 {isAr ? g.ar : g.en}
               </button>
