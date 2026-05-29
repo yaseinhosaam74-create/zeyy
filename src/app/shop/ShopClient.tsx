@@ -164,7 +164,7 @@ export default function ShopClient() {
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
               {filtered.map((product: any, i: number) => (
                 <motion.div key={product.id} initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: i * 0.04 }}>
-                  <ProductCard product={product} currencyAr={currencyAr} currencyEn={currencyEn} />
+                  <ProductCard product={product} />
                 </motion.div>
               ))}
             </div>
