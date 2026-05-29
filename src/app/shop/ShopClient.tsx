@@ -1,26 +1,26 @@
 "use client";
 // src/app/shop/ShopClient.tsx
 
-import { useState, useEffect } from "react";
-import { useSearchParams }     from "next/navigation";
+import { useState, useEffect }     from "react";
+import { useSearchParams }         from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown } from "lucide-react";
-import Navbar         from "@/components/Navbar";
-import Footer         from "@/components/Footer";
-import ProductCard    from "@/components/ProductCard";
-import { useStore }   from "@/store/useStore";
-import { useProducts } from "@/hooks/useFirestore";
-import { onSnapshot, doc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { ChevronDown }             from "lucide-react";
+import Navbar                      from "@/components/Navbar";
+import Footer                      from "@/components/Footer";
+import ProductCard                 from "@/components/ProductCard";
+import { useStore }                from "@/store/useStore";
+import { useProducts }             from "@/hooks/useFirestore";
+import { onSnapshot, doc }         from "firebase/firestore";
+import { db }                      from "@/lib/firebase";
 
 const SORT_OPTIONS = [
-  { id: "newest",    ar: "الأحدث",  en: "Newest"  },
-  { id: "price_asc", ar: "السعر ↑", en: "Price ↑" },
-  { id: "price_desc",ar: "السعر ↓", en: "Price ↓" },
+  { id: "newest",     ar: "الأحدث",  en: "Newest"  },
+  { id: "price_asc",  ar: "السعر ↑", en: "Price ↑" },
+  { id: "price_desc", ar: "السعر ↓", en: "Price ↓" },
 ];
 
 export default function ShopClient() {
-  const { lang, t }        = useStore();
+  const { lang }           = useStore();
   const searchParams       = useSearchParams();
   const isAr               = lang === "ar";
   const [gender,   setGender]   = useState("all");
@@ -28,8 +28,7 @@ export default function ShopClient() {
   const [sort,     setSort]     = useState("newest");
   const [sortOpen, setSortOpen] = useState(false);
   const [settings, setSettings] = useState<any>({});
-
-  const { products, loading } = useProducts();
+  const { products, loading }   = useProducts();
 
   useEffect(() => {
     const g = searchParams.get("gender");
@@ -51,7 +50,6 @@ export default function ShopClient() {
   const filtered = products
     .filter((p: any) => gender === "all" || p.gender === gender || p.gender === "unisex")
     .filter((p: any) => category === "all" || p.category === category)
-    .filter((p: any) => !p.sold_out || true)
     .sort((a: any, b: any) => {
       if (sort === "price_asc")  return a.price - b.price;
       if (sort === "price_desc") return b.price - a.price;
@@ -69,13 +67,13 @@ export default function ShopClient() {
         <div style={{ background: "#38040E", color: "#E8DCCA", padding: "56px 0", textAlign: "center" }}>
           <motion.p initial={{ opacity: 0 }} animate={{ opacity: 0.5 }} transition={{ duration: 0.6 }}
             style={{ fontSize: "11px", letterSpacing: "0.25em", textTransform: "uppercase", marginBottom: "12px" }}>
-            {t("تسوق الآن", "Shop Now")}
+            {isAr ? "تسوق الآن" : "Shop Now"}
           </motion.p>
           <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7 }}
             style={{ fontFamily: isAr ? "Aref Ruqaa, serif" : "Cormorant Garamond, serif", fontSize: "clamp(2rem, 5vw, 4rem)", fontWeight: isAr ? 700 : 600 }}>
-            {gender === "men"   ? t("رجالي",           "Men")
-             : gender === "women" ? t("حريمي",          "Women")
-             : t("المجموعة الكاملة", "Full Collection")}
+            {gender === "men"    ? (isAr ? "رجالي"              : "Men")
+             : gender === "women"  ? (isAr ? "حريمي"             : "Women")
+             : (isAr ? "المجموعة الكاملة" : "Full Collection")}
           </motion.h1>
         </div>
 
@@ -87,16 +85,27 @@ export default function ShopClient() {
               { id: "men",   ar: "رجالي",  en: "Men"   },
               { id: "women", ar: "حريمي",  en: "Women" },
             ].map(g => (
-              <button key={g.id} onClick={() => { setGender(g.id); setCategory("all"); }}
+              <button
+                key={g.id}
+                onClick={() => { setGender(g.id); setCategory("all"); }}
                 style={{
-                  padding: "16px 24px", fontSize: "12px", letterSpacing: "0.12em",
-                  textTransform: "uppercase", color: "var(--color-text)",
-                  borderBottom: gender === g.id ? "2px solid var(--color-text)" : "2px solid transparent",
-                  opacity: gender === g.id ? 1 : 0.4, background: "transparent",
-                  cursor: "pointer", transition: "all 0.2s",
-                  fontFamily: isAr ? "Aref Ruqaa, serif" : "Cormorant Garamond, serif",
-                  borderBottom: gender === g.id ? "2px solid var(--color-text)" : "2px solid transparent",
-                } as any}>
+                  padding:       "16px 24px",
+                  fontSize:      "12px",
+                  letterSpacing: "0.12em",
+                  textTransform: "uppercase",
+                  color:         "var(--color-text)",
+                  borderBottom:  gender === g.id ? "2px solid var(--color-text)" : "2px solid transparent",
+                  opacity:       gender === g.id ? 1 : 0.4,
+                  background:    "transparent",
+                  cursor:        "pointer",
+                  transition:    "all 0.2s",
+                  fontFamily:    isAr ? "Aref Ruqaa, serif" : "Cormorant Garamond, serif",
+                  /* No conflicting "border" shorthand */
+                  borderTop:     "none",
+                  borderLeft:    "none",
+                  borderRight:   "none",
+                }}
+              >
                 {isAr ? g.ar : g.en}
               </button>
             ))}
@@ -106,21 +115,28 @@ export default function ShopClient() {
         {/* Toolbar */}
         <div className="section-container py-5" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <p style={{ fontSize: "12px", color: "var(--color-text)", opacity: 0.4 }}>
-            {filtered.length} {t("منتج", "items")}
+            {filtered.length} {isAr ? "منتج" : "items"}
           </p>
           <div style={{ position: "relative" }}>
-            <button onClick={() => setSortOpen(!sortOpen)}
-              style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11px", letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-text)", background: "transparent", border: "1px solid var(--color-border)", padding: "7px 14px", cursor: "pointer" }}>
+            <button
+              onClick={() => setSortOpen(!sortOpen)}
+              style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11px", letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-text)", background: "transparent", border: "1px solid var(--color-border)", padding: "7px 14px", cursor: "pointer" }}
+            >
               {isAr ? currentSort?.ar : currentSort?.en}
               <ChevronDown size={12} style={{ transform: sortOpen ? "rotate(180deg)" : "rotate(0)", transition: "transform 0.2s" }} />
             </button>
             <AnimatePresence>
               {sortOpen && (
-                <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
-                  style={{ position: "absolute", top: "calc(100% + 4px)", [isAr ? "right" : "left"]: 0, background: "var(--color-bg)", border: "1px solid var(--color-border)", zIndex: 10, minWidth: "140px" }}>
+                <motion.div
+                  initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
+                  style={{ position: "absolute", top: "calc(100% + 4px)", [isAr ? "right" : "left"]: 0, background: "var(--color-bg)", border: "1px solid var(--color-border)", zIndex: 10, minWidth: "140px" }}
+                >
                   {SORT_OPTIONS.map(o => (
-                    <button key={o.id} onClick={() => { setSort(o.id); setSortOpen(false); }}
-                      style={{ display: "block", width: "100%", padding: "10px 16px", fontSize: "11px", letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-text)", background: sort === o.id ? "var(--color-border)" : "transparent", border: "none", cursor: "pointer", textAlign: isAr ? "right" : "left" }}>
+                    <button
+                      key={o.id}
+                      onClick={() => { setSort(o.id); setSortOpen(false); }}
+                      style={{ display: "block", width: "100%", padding: "10px 16px", fontSize: "11px", letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-text)", background: sort === o.id ? "var(--color-border)" : "transparent", border: "none", cursor: "pointer", textAlign: isAr ? "right" : "left" }}
+                    >
                       {isAr ? o.ar : o.en}
                     </button>
                   ))}
@@ -141,7 +157,7 @@ export default function ShopClient() {
           ) : filtered.length === 0 ? (
             <div style={{ textAlign: "center", padding: "6rem 0", opacity: 0.3 }}>
               <p style={{ fontFamily: isAr ? "Aref Ruqaa, serif" : "Cormorant Garamond, serif", fontSize: "1.2rem", color: "var(--color-text)" }}>
-                {t("لا توجد منتجات", "No products found")}
+                {isAr ? "لا توجد منتجات" : "No products found"}
               </p>
             </div>
           ) : (
