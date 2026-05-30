@@ -47,8 +47,8 @@ function GenderSection({ gender, label, sections, isAr, onClose }: {
         onClick={() => setExpanded(!expanded)}
         style={{
           width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
-          padding: "14px 0", borderBottom: "1px solid var(--color-border)",
-          background: "none", borderBottom: "1px solid var(--color-border)",
+          padding: "14px 0",
+          background: "none", borderTop: "none", borderLeft: "none", borderRight: "none", borderBottom: "1px solid var(--color-border)",
           cursor: "pointer", color: "var(--color-text)",
         } as any}
       >
