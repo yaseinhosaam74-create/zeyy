@@ -1,82 +1,61 @@
 "use client";
 // src/app/orders/page.tsx
 
-import { useState, useEffect } from "react";
-import { collection, query, orderBy, onSnapshot, updateDoc, doc, getDoc } from "firebase/firestore";
-import { onAuthStateChanged, type User } from "firebase/auth";
-import { auth, db }  from "@/lib/firebase";
+import { useState, useEffect }     from "react";
+import { collection, query, orderBy, onSnapshot, updateDoc, doc } from "firebase/firestore";
+import { onAuthStateChanged, type User }                           from "firebase/auth";
+import { auth, db }                from "@/lib/firebase";
 import { motion, AnimatePresence } from "framer-motion";
-import Link          from "next/link";
-import Image         from "next/image";
-import Navbar        from "@/components/Navbar";
-import Footer        from "@/components/Footer";
-import { useStore }  from "@/store/useStore";
-import { Package, ChevronDown, MessageCircle, X } from "lucide-react";
+import Link                        from "next/link";
+import Image                       from "next/image";
+import Navbar                      from "@/components/Navbar";
+import Footer                      from "@/components/Footer";
+import { useStore }                from "@/store/useStore";
+import { Package, ChevronDown, X, Check, Truck, Clock, MessageCircle } from "lucide-react";
 
-const STATUS_CONFIG: Record<string, { ar: string; en: string; color: string; step: number }> = {
+const STATUS: Record<string, { ar: string; en: string; color: string; step: number }> = {
   pending:   { ar: "قيد المراجعة", en: "Pending",   color: "#c97b2e", step: 1 },
   confirmed: { ar: "تم التأكيد",   en: "Confirmed", color: "#3498db", step: 2 },
-  shipped:   { ar: "في الطريق",    en: "Shipped",   color: "#9b59b6", step: 3 },
-  delivered: { ar: "تم التوصيل",   en: "Delivered", color: "#305252", step: 4 },
+  shipped:   { ar: "في الطريق",    en: "Shipped",   color: "#305252", step: 3 },
+  delivered: { ar: "تم التوصيل",   en: "Delivered", color: "#2ecc71", step: 4 },
   cancelled: { ar: "ملغي",         en: "Cancelled", color: "#c0392b", step: 0 },
 };
+const STEPS = ["pending","confirmed","shipped","delivered"];
 
-const STEPS = ["pending", "confirmed", "shipped", "delivered"];
-
-// ── Order progress bar ────────────────────────────────────
-function OrderProgress({ status, isAr }: { status: string; isAr: boolean }) {
-  const cfg     = STATUS_CONFIG[status] || STATUS_CONFIG.pending;
-  const current = cfg.step;
+// Progress bar
+function Progress({ status, isAr }: { status: string; isAr: boolean }) {
+  const cfg = STATUS[status] || STATUS.pending;
   if (status === "cancelled") return (
-    <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 0" }}>
-      <div style={{ width: "8px", height: "8px", background: "#c0392b", borderRadius: "50%" }} />
-      <span style={{ fontSize: "12px", color: "#c0392b", letterSpacing: "0.08em" }}>
-        {isAr ? "تم الإلغاء" : "Cancelled"}
-      </span>
+    <div style={{ display:"flex", alignItems:"center", gap:"6px", padding:"8px 0 12px" }}>
+      <X size={12} color="#c0392b"/>
+      <span style={{ fontSize:"11px", color:"#c0392b" }}>{isAr ? "ملغي" : "Cancelled"}</span>
     </div>
   );
-
   return (
-    <div style={{ padding: "12px 0" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: "0" }}>
+    <div style={{ padding:"10px 0 14px" }}>
+      <div style={{ display:"flex", alignItems:"center" }}>
         {STEPS.map((step, i) => {
-          const s       = STATUS_CONFIG[step];
-          const done    = current > i + 1;
-          const active  = current === i + 1;
-          const pending = current < i + 1;
+          const s      = STATUS[step];
+          const done   = cfg.step > i + 1;
+          const active = cfg.step === i + 1;
           return (
-            <div key={step} style={{ display: "flex", alignItems: "center", flex: i < STEPS.length - 1 ? 1 : 0 }}>
-              {/* Circle */}
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flexShrink: 0 }}>
+            <div key={step} style={{ display:"flex", alignItems:"center", flex: i < STEPS.length-1 ? 1 : 0 }}>
+              <div style={{ display:"flex", flexDirection:"column", alignItems:"center", flexShrink:0 }}>
                 <div style={{
-                  width:        active ? "14px" : "10px",
-                  height:       active ? "14px" : "10px",
+                  width:        active ? "13px" : "9px",
+                  height:       active ? "13px" : "9px",
                   borderRadius: "50%",
-                  background:   done || active ? (active ? cfg.color : "#305252") : "transparent",
-                  border:       `2px solid ${done || active ? (active ? cfg.color : "#305252") : "var(--color-border)"}`,
+                  background:   done||active ? (active ? cfg.color : "#305252") : "transparent",
+                  border:       `2px solid ${done||active ? (active ? cfg.color : "#305252") : "var(--color-border)"}`,
                   transition:   "all 0.3s",
-                }} />
-                <span style={{
-                  fontSize:     "9px",
-                  marginTop:    "4px",
-                  color:        done || active ? "var(--color-text)" : "var(--color-text)",
-                  opacity:      pending ? 0.3 : 1,
-                  letterSpacing:"0.05em",
-                  whiteSpace:   "nowrap",
-                  textAlign:    "center",
-                }}>
-                  {isAr ? s.ar.split(" ")[0] : step.charAt(0).toUpperCase() + step.slice(1)}
+                  flexShrink:   0,
+                }}/>
+                <span style={{ fontSize:"9px", color:"var(--color-text)", opacity: done||active ? 0.7 : 0.25, marginTop:"4px", letterSpacing:"0.04em", whiteSpace:"nowrap" }}>
+                  {isAr ? s.ar.split(" ")[0] : step.charAt(0).toUpperCase()+step.slice(1)}
                 </span>
               </div>
-              {/* Line */}
-              {i < STEPS.length - 1 && (
-                <div style={{
-                  flex:       1,
-                  height:     "2px",
-                  background: done ? "#305252" : "var(--color-border)",
-                  marginBottom: "16px",
-                  transition: "background 0.5s",
-                }} />
+              {i < STEPS.length-1 && (
+                <div style={{ flex:1, height:"1.5px", background: done ? "#305252" : "var(--color-border)", marginBottom:"18px", transition:"background 0.4s" }}/>
               )}
             </div>
           );
@@ -88,78 +67,61 @@ function OrderProgress({ status, isAr }: { status: string; isAr: boolean }) {
 
 export default function OrdersPage() {
   const { lang }             = useStore();
-  const [user,   setUser]    = useState<User | null>(null);
+  const [user,   setUser]    = useState<User|null>(null);
   const [orders, setOrders]  = useState<any[]>([]);
   const [loading,setLoading] = useState(true);
-  const [open,   setOpen]    = useState<string | null>(null);
-  const [settings,setSettings]= useState<any>({});
+  const [open,   setOpen]    = useState<string|null>(null);
+  const [settings,setSettings]=useState<any>({});
   const isAr                 = lang === "ar";
 
-  useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (u) => { setUser(u); if (!u) setLoading(false); });
-    return () => unsub();
-  }, []);
+  useEffect(()=>{
+    const u=onAuthStateChanged(auth, u=>{setUser(u); if(!u) setLoading(false);});
+    return ()=>u();
+  },[]);
 
-  // Load store settings (WhatsApp)
-  useEffect(() => {
-    const unsub = onSnapshot(doc(db, "settings", "store"), (snap) => {
-      if (snap.exists()) setSettings(snap.data());
-    });
-    return () => unsub();
-  }, []);
+  useEffect(()=>{
+    const u=onSnapshot(doc(db,"settings","store"), s=>{if(s.exists()) setSettings(s.data());});
+    return ()=>u();
+  },[]);
 
-  useEffect(() => {
-    if (!user) return;
-    const q = query(collection(db, "orders"), orderBy("created_at", "desc"));
-    const unsub = onSnapshot(q, (snap) => {
-      const all  = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      const mine = all.filter((o: any) =>
-        o.user_email === user.email || o.customer?.email === user.email
-      );
-      setOrders(mine);
+  useEffect(()=>{
+    if(!user) return;
+    const q=query(collection(db,"orders"),orderBy("created_at","desc"));
+    const u=onSnapshot(q, snap=>{
+      const all=snap.docs.map(d=>({id:d.id,...d.data()}));
+      setOrders(all.filter((o:any)=>o.user_email===user.email||o.customer?.email===user.email));
       setLoading(false);
     });
-    return () => unsub();
-  }, [user]);
+    return ()=>u();
+  },[user]);
 
-  // Cancel order
+  // Direct cancel — no WhatsApp redirect
   async function cancelOrder(orderId: string) {
-    if (!confirm(isAr ? "هل تريد إلغاء الطلب؟" : "Cancel this order?")) return;
-    await updateDoc(doc(db, "orders", orderId), { status: "cancelled" });
+    if(!confirm(isAr?"هل تريد إلغاء الطلب؟":"Cancel this order?")) return;
+    await updateDoc(doc(db,"orders",orderId),{status:"cancelled"});
   }
 
   // WhatsApp support
-  function openWhatsApp(message: string) {
-    const number = settings.whatsapp_number || "01121454510";
-    const url    = `https://wa.me/${number}?text=${encodeURIComponent(message)}`;
-    window.open(url, "_blank");
+  function openWhatsApp(orderId: string) {
+    const number  = settings.whatsapp_number||"01121454510";
+    const msg     = isAr
+      ? (settings.whatsapp_message_ar||"مرحباً، أريد الاستفسار عن طلبي")+` #${orderId.slice(-8).toUpperCase()}`
+      : (settings.whatsapp_message_en||"Hello, I need help with my order")+` #${orderId.slice(-8).toUpperCase()}`;
+    window.open(`https://wa.me/${number}?text=${encodeURIComponent(msg)}`,"_blank");
   }
 
-  function whatsAppCancel(orderId: string) {
-    const template = isAr
-      ? (settings.cancel_whatsapp_msg_ar || "مرحباً، أريد إلغاء طلبي رقم: {order_id}")
-      : (settings.cancel_whatsapp_msg_en || "Hello, I want to cancel my order: {order_id}");
-    openWhatsApp(template.replace("{order_id}", `#${orderId.slice(-8).toUpperCase()}`));
-  }
+  const currency = isAr ? (settings.currency_ar||"ج.م") : (settings.currency_en||"EGP");
 
-  function whatsAppSupport() {
-    const msg = isAr
-      ? (settings.whatsapp_message_ar || "مرحباً، أريد الاستفسار عن طلبي 🛍️")
-      : (settings.whatsapp_message_en || "Hello, I need help with my order 🛍️");
-    openWhatsApp(msg);
-  }
-
-  // ── Not logged in ──────────────────────────────────────
-  if (!loading && !user) return (
+  if(!loading&&!user) return (
     <>
-      <Navbar />
-      <div className="min-h-screen pt-[72px] flex flex-col items-center justify-center gap-6 px-6" dir={isAr ? "rtl" : "ltr"}>
-        <Package size={48} strokeWidth={1} style={{ opacity: 0.2, color: "var(--color-text)" }} />
-        <p style={{ fontFamily: isAr ? "Aref Ruqaa, serif" : "Cormorant Garamond, serif", color: "var(--color-text)", opacity: 0.5, fontSize: "1.2rem" }}>
-          {isAr ? "سجّل دخولك لعرض طلباتك" : "Sign in to view your orders"}
+      <Navbar/>
+      <div className="min-h-screen pt-[72px] flex flex-col items-center justify-center gap-6 px-6" dir={isAr?"rtl":"ltr"}>
+        <Package size={48} strokeWidth={1} style={{ opacity:0.2, color:"var(--color-text)" }}/>
+        <p style={{ fontFamily:isAr?"Aref Ruqaa, serif":"Cormorant Garamond, serif", color:"var(--color-text)", opacity:0.5, fontSize:"1.2rem" }}>
+          {isAr?"سجّل دخولك لعرض طلباتك":"Sign in to view your orders"}
         </p>
         <Link href="/account" className="btn-primary px-8 py-3">
-          {isAr ? "تسجيل الدخول" : "Sign In"}
+          {isAr?"تسجيل الدخول":"Sign In"}
         </Link>
       </div>
     </>
@@ -167,123 +129,119 @@ export default function OrdersPage() {
 
   return (
     <>
-      <Navbar />
-      <main className="min-h-screen pt-[72px]" dir={isAr ? "rtl" : "ltr"}>
+      <Navbar/>
+      <main className="min-h-screen pt-[72px]" dir={isAr?"rtl":"ltr"}>
 
-        {/* Header — contrasting background */}
-        <div style={{ background: "#38040E", color: "#E8DCCA", padding: "48px 0", textAlign: "center" }}>
-          <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7 }}
-            style={{ fontFamily: isAr ? "Aref Ruqaa, serif" : "Cormorant Garamond, serif", fontSize: "clamp(2rem, 5vw, 3.5rem)", fontWeight: isAr ? 700 : 600, letterSpacing: isAr ? "0.02em" : "-0.02em" }}>
-            {isAr ? "طلباتي" : "My Orders"}
+        {/* Header */}
+        <div style={{ background:"#38040E", color:"#E8DCCA", padding:"48px 0", textAlign:"center" }}>
+          <motion.h1 initial={{ opacity:0, y:20 }} animate={{ opacity:1, y:0 }} transition={{ duration:0.7 }}
+            style={{ fontFamily:isAr?"Aref Ruqaa, serif":"Cormorant Garamond, serif", fontSize:"clamp(2rem,5vw,3.5rem)", fontWeight:isAr?700:600 }}>
+            {isAr?"طلباتي":"My Orders"}
           </motion.h1>
-          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 0.55 }} transition={{ delay: 0.3, duration: 0.5 }}
-            style={{ fontSize: "13px", marginTop: "8px", letterSpacing: "0.1em" }}>
-            {orders.length > 0 ? `${orders.length} ${isAr ? "طلبات" : "orders"}` : ""}
-          </motion.p>
         </div>
 
         <div className="section-container py-10 max-w-2xl">
 
-          {/* WhatsApp support button */}
-          <motion.button
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            onClick={whatsAppSupport}
-            className="w-full flex items-center justify-center gap-3 mb-8 py-3.5 transition-all"
-            style={{ background: "#25D366", color: "#fff", border: "none", cursor: "pointer", fontSize: "13px", letterSpacing: "0.08em" }}
+          {/* WhatsApp support button — site style */}
+          <motion.button initial={{ opacity:0 }} animate={{ opacity:1 }} transition={{ delay:0.3 }}
+            onClick={()=>openWhatsApp("")}
+            style={{
+              width:"100%", display:"flex", alignItems:"center", justifyContent:"center",
+              gap:"10px", padding:"13px", marginBottom:"24px",
+              background:"transparent", border:"1px solid var(--color-border)",
+              color:"var(--color-text)", cursor:"pointer", fontSize:"12px",
+              letterSpacing:"0.1em", textTransform:"uppercase",
+              transition:"all 0.2s",
+            }}
+            onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.borderColor="var(--color-text)";}}
+            onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.borderColor="var(--color-border)";}}
           >
-            <MessageCircle size={16} strokeWidth={1.5} />
-            {isAr ? "تواصل مع الدعم عبر واتساب" : "Contact Support via WhatsApp"}
+            {/* WhatsApp icon — site style */}
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+            </svg>
+            {isAr?"تواصل مع الدعم":"Contact Support"}
           </motion.button>
 
           {loading ? (
             <div className="flex flex-col gap-3">
-              {[1,2].map(i => <div key={i} className="h-24 animate-pulse" style={{ background: "var(--color-border)" }} />)}
+              {[1,2].map(i=><div key={i} className="h-24 animate-pulse" style={{ background:"var(--color-border)" }}/>)}
             </div>
-          ) : orders.length === 0 ? (
+          ) : orders.length===0 ? (
             <div className="flex flex-col items-center justify-center py-20 gap-5">
-              <Package size={56} strokeWidth={1} style={{ opacity: 0.15, color: "var(--color-text)" }} />
-              <p style={{ color: "var(--color-text)", opacity: 0.4, fontFamily: isAr ? "Aref Ruqaa, serif" : "Cormorant Garamond, serif", fontSize: "1.1rem" }}>
-                {isAr ? "لا توجد طلبات بعد" : "No orders yet"}
+              <Package size={56} strokeWidth={1} style={{ opacity:0.15, color:"var(--color-text)" }}/>
+              <p style={{ color:"var(--color-text)", opacity:0.4, fontFamily:isAr?"Aref Ruqaa, serif":"Cormorant Garamond, serif", fontSize:"1.1rem" }}>
+                {isAr?"لا توجد طلبات بعد":"No orders yet"}
               </p>
               <Link href="/shop" className="btn-primary px-8 py-3">
-                {isAr ? "ابدأ التسوق" : "Start Shopping"}
+                {isAr?"ابدأ التسوق":"Start Shopping"}
               </Link>
             </div>
           ) : (
             <div className="flex flex-col gap-4">
-              {orders.map((order, idx) => {
-                const cfg    = STATUS_CONFIG[order.status] || STATUS_CONFIG.pending;
-                const isOpen = open === order.id;
-                const canCancel = ["pending", "confirmed"].includes(order.status);
-
+              {orders.map((order,idx)=>{
+                const cfg     = STATUS[order.status]||STATUS.pending;
+                const isOpen  = open===order.id;
+                const canCancel = ["pending","confirmed"].includes(order.status);
                 return (
                   <motion.div key={order.id}
-                    initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: idx * 0.06 }}
-                    style={{ border: "1px solid var(--color-border)", overflow: "hidden", background: "var(--color-bg)" }}>
+                    initial={{ opacity:0, y:16 }} animate={{ opacity:1, y:0 }}
+                    transition={{ duration:0.5, delay:idx*0.06 }}
+                    style={{ border:"1px solid var(--color-border)", overflow:"hidden", background:"var(--color-bg)" }}>
 
                     {/* Header */}
-                    <button
-                      onClick={() => setOpen(isOpen ? null : order.id)}
-                      className="w-full flex items-center justify-between p-5"
-                      style={{ background: "transparent", border: "none", cursor: "pointer", textAlign: isAr ? "right" : "left" }}
-                    >
-                      <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-                        {/* Status dot */}
-                        <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: cfg.color, flexShrink: 0, boxShadow: `0 0 0 3px ${cfg.color}33` }} />
+                    <button onClick={()=>setOpen(isOpen?null:order.id)}
+                      style={{ width:"100%", display:"flex", alignItems:"center", justifyContent:"space-between", padding:"16px 20px", background:"transparent", borderTop:"none", borderLeft:"none", borderRight:"none", borderBottom:"none", cursor:"pointer", textAlign:isAr?"right":"left" }}>
+                      <div style={{ display:"flex", alignItems:"center", gap:"12px" }}>
+                        <div style={{ width:"10px", height:"10px", borderRadius:"50%", background:cfg.color, flexShrink:0, boxShadow:`0 0 0 3px ${cfg.color}33` }}/>
                         <div>
-                          <p style={{ fontSize: "13px", fontWeight: 500, color: "var(--color-text)", fontFamily: "monospace" }}>
+                          <p style={{ fontSize:"13px", fontWeight:500, color:"var(--color-text)", fontFamily:"monospace" }}>
                             #{order.id?.slice(-8).toUpperCase()}
                           </p>
-                          <p style={{ fontSize: "11px", color: cfg.color, marginTop: "2px", letterSpacing: "0.05em" }}>
-                            {isAr ? cfg.ar : cfg.en}
+                          <p style={{ fontSize:"11px", color:cfg.color, marginTop:"2px" }}>
+                            {isAr?cfg.ar:cfg.en}
                           </p>
                         </div>
                       </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                        <div style={{ textAlign: isAr ? "left" : "right" }}>
-                          <p style={{ fontSize: "15px", fontWeight: 600, color: "var(--color-text)", fontFamily: "Cormorant Garamond, serif" }}>
-                            {order.total?.toLocaleString()} {isAr ? (settings.currency_ar || "ج.م") : (settings.currency_en || "EGP")}
+                      <div style={{ display:"flex", alignItems:"center", gap:"12px" }}>
+                        <div style={{ textAlign:isAr?"left":"right" }}>
+                          <p style={{ fontSize:"15px", fontWeight:600, color:"var(--color-text)", fontFamily:"Cormorant Garamond, serif" }}>
+                            {order.total?.toLocaleString()} {currency}
                           </p>
-                          <p style={{ fontSize: "11px", color: "var(--color-text)", opacity: 0.4, marginTop: "2px" }}>
-                            {order.items?.length} {isAr ? "قطعة" : "items"}
+                          <p style={{ fontSize:"11px", color:"var(--color-text)", opacity:0.4, marginTop:"2px" }}>
+                            {order.items?.reduce((t:number,i:any)=>t+(i.quantity||1),0)} {isAr?"قطعة":"pcs"}
                           </p>
                         </div>
-                        <ChevronDown size={16} style={{ color: "var(--color-text)", opacity: 0.4, transform: isOpen ? "rotate(180deg)" : "rotate(0)", transition: "transform 0.3s", flexShrink: 0 }} />
+                        <ChevronDown size={15} style={{ color:"var(--color-text)", opacity:0.35, transform:isOpen?"rotate(180deg)":"rotate(0)", transition:"transform 0.3s", flexShrink:0 }}/>
                       </div>
                     </button>
 
-                    {/* Progress bar */}
-                    <div style={{ padding: "0 20px" }}>
-                      <OrderProgress status={order.status} isAr={isAr} />
+                    {/* Progress */}
+                    <div style={{ paddingInline:"20px" }}>
+                      <Progress status={order.status} isAr={isAr}/>
                     </div>
 
-                    {/* Expanded details */}
+                    {/* Details */}
                     <AnimatePresence>
                       {isOpen && (
-                        <motion.div
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: "auto", opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] }}
-                          style={{ borderTop: "1px solid var(--color-border)", overflow: "hidden" }}
-                        >
-                          <div style={{ padding: "16px 20px" }}>
+                        <motion.div initial={{ height:0, opacity:0 }} animate={{ height:"auto", opacity:1 }} exit={{ height:0, opacity:0 }}
+                          transition={{ duration:0.3 }}
+                          style={{ borderTop:"1px solid var(--color-border)", overflow:"hidden" }}>
+                          <div style={{ padding:"16px 20px" }}>
+
                             {/* Items */}
-                            <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "16px" }}>
-                              {order.items?.map((item: any, i: number) => (
-                                <div key={i} style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                                  <div style={{ width: "52px", height: "64px", flexShrink: 0, position: "relative", overflow: "hidden", background: "var(--color-border)" }}>
-                                    {item.image && <Image src={item.image} alt="" fill style={{ objectFit: "cover" }} />}
+                            <div style={{ display:"flex", flexDirection:"column", gap:"10px", marginBottom:"14px" }}>
+                              {order.items?.map((item:any,i:number)=>(
+                                <div key={i} style={{ display:"flex", alignItems:"center", gap:"10px" }}>
+                                  <div style={{ width:"48px", height:"60px", flexShrink:0, position:"relative", overflow:"hidden", background:"var(--color-border)" }}>
+                                    {item.image&&<Image src={item.image} alt="" fill style={{ objectFit:"cover" }}/>}
                                   </div>
-                                  <div style={{ flex: 1, minWidth: 0 }}>
-                                    <p style={{ fontSize: "13px", color: "var(--color-text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                                      {isAr ? item.name_ar : item.name_en}
+                                  <div style={{ flex:1, minWidth:0 }}>
+                                    <p style={{ fontSize:"12px", color:"var(--color-text)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                                      {isAr?item.name_ar:item.name_en}
                                     </p>
-                                    <p style={{ fontSize: "11px", color: "var(--color-text)", opacity: 0.4, marginTop: "3px" }}>
-                                      {item.size} × {item.quantity} = {(item.price * item.quantity).toLocaleString()} {isAr ? (settings.currency_ar || "ج.م") : (settings.currency_en || "EGP")}
+                                    <p style={{ fontSize:"11px", color:"var(--color-text)", opacity:0.4, marginTop:"2px" }}>
+                                      {item.size} × {item.quantity} = {(item.price*(item.quantity||1)).toLocaleString()} {currency}
                                     </p>
                                   </div>
                                 </div>
@@ -291,43 +249,35 @@ export default function OrdersPage() {
                             </div>
 
                             {/* Address */}
-                            <div style={{ borderTop: "1px solid var(--color-border)", paddingTop: "12px", marginBottom: "14px" }}>
-                              <p style={{ fontSize: "10px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-text)", opacity: 0.4, marginBottom: "5px" }}>
-                                {isAr ? "عنوان التوصيل" : "Delivery Address"}
+                            <div style={{ borderTop:"1px solid var(--color-border)", paddingTop:"12px", marginBottom:"14px" }}>
+                              <p style={{ fontSize:"9px", letterSpacing:"0.12em", textTransform:"uppercase", color:"var(--color-text)", opacity:0.35, marginBottom:"5px" }}>
+                                {isAr?"عنوان التوصيل":"Delivery Address"}
                               </p>
-                              <p style={{ fontSize: "12px", color: "var(--color-text)", opacity: 0.7 }}>
+                              <p style={{ fontSize:"12px", color:"var(--color-text)", opacity:0.7 }}>
                                 {order.customer?.full_name} · {order.customer?.phone}
                               </p>
-                              <p style={{ fontSize: "12px", color: "var(--color-text)", opacity: 0.5, marginTop: "2px" }}>
-                                {[order.customer?.city, order.customer?.district, order.customer?.street].filter(Boolean).join(" · ")}
+                              <p style={{ fontSize:"12px", color:"var(--color-text)", opacity:0.5, marginTop:"2px" }}>
+                                {[order.customer?.city,order.customer?.district,order.customer?.street].filter(Boolean).join(" · ")}
                               </p>
                             </div>
 
                             {/* Actions */}
-                            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                              {/* WhatsApp support */}
-                              <button
-                                onClick={() => openWhatsApp(
-                                  (isAr ? (settings.whatsapp_message_ar || "مرحباً، أريد الاستفسار عن طلبي") : (settings.whatsapp_message_en || "Hello, I need help with my order")) +
-                                  ` #${order.id?.slice(-8).toUpperCase()}`
-                                )}
-                                style={{ display: "flex", alignItems: "center", gap: "6px", padding: "8px 16px", background: "#25D366", color: "#fff", border: "none", cursor: "pointer", fontSize: "11px", letterSpacing: "0.08em" }}
-                              >
-                                <MessageCircle size={13} />
-                                {isAr ? "واتساب" : "WhatsApp"}
+                            <div style={{ display:"flex", gap:"8px", flexWrap:"wrap" }}>
+                              {/* WhatsApp — site style icon */}
+                              <button onClick={()=>openWhatsApp(order.id)}
+                                style={{ display:"flex", alignItems:"center", gap:"6px", padding:"9px 14px", background:"transparent", border:"1px solid var(--color-border)", color:"var(--color-text)", cursor:"pointer", fontSize:"11px", letterSpacing:"0.08em" }}>
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                                </svg>
+                                {isAr?"واتساب":"WhatsApp"}
                               </button>
 
-                              {/* Cancel */}
+                              {/* Cancel — direct, no WhatsApp */}
                               {canCancel && (
-                                <button
-                                  onClick={() => {
-                                    whatsAppCancel(order.id);
-                                    cancelOrder(order.id);
-                                  }}
-                                  style={{ display: "flex", alignItems: "center", gap: "6px", padding: "8px 16px", background: "transparent", color: "#c0392b", border: "1px solid #c0392b33", cursor: "pointer", fontSize: "11px", letterSpacing: "0.08em" }}
-                                >
-                                  <X size={12} />
-                                  {isAr ? "إلغاء الطلب" : "Cancel Order"}
+                                <button onClick={()=>cancelOrder(order.id)}
+                                  style={{ display:"flex", alignItems:"center", gap:"6px", padding:"9px 14px", background:"transparent", border:"1px solid rgba(192,57,43,0.3)", color:"#c0392b", cursor:"pointer", fontSize:"11px", letterSpacing:"0.08em" }}>
+                                  <X size={11}/>
+                                  {isAr?"إلغاء الطلب":"Cancel Order"}
                                 </button>
                               )}
                             </div>
@@ -342,7 +292,7 @@ export default function OrdersPage() {
           )}
         </div>
       </main>
-      <Footer />
+      <Footer/>
     </>
   );
 }

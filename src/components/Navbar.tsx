@@ -47,8 +47,8 @@ function GenderSection({ gender, label, sections, isAr, onClose }: {
         onClick={() => setExpanded(!expanded)}
         style={{
           width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
-          padding: "14px 0",
-          background: "none", borderTop: "none", borderLeft: "none", borderRight: "none", borderBottom: "1px solid var(--color-border)",
+          padding: "14px 0", borderBottom: "1px solid var(--color-border)",
+          background: "none", border: "none", borderBottom: "1px solid var(--color-border)",
           cursor: "pointer", color: "var(--color-text)",
         } as any}
       >
@@ -307,7 +307,7 @@ export default function Navbar() {
                 <motion.div initial={{ opacity: 0, x: isAr ? -12 : 12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.30, duration: 0.3 }}>
                   <Link href="/shop?has_offer=true" onClick={() => setMenuOpen(false)}
                     style={{ display: "block", padding: "14px 0", fontSize: "15px", fontFamily: isAr ? "Aref Ruqaa, serif" : "Cormorant Garamond, serif", color: "#38040E", textDecoration: "none", borderBottom: "1px solid var(--color-border)", fontWeight: 600 }}>
-                    {isAr ? "🏷️ العروض" : "🏷️ Offers"}
+                    {isAr ? "عروض" : "Offers"}
                   </Link>
                 </motion.div>
               </div>
